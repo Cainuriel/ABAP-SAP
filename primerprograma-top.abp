@@ -1,0 +1,13 @@
+INCLUDE z_testfll_top.
+TYPES: BEGIN OF tw_valores,
+  idioma TYPE spras,
+  numero TYPE i,
+  cifraenletras TYPE wort,
+  contador TYPE i,
+  END OF tw_valores.
+
+  data pt_valores TYPE STANDARD TABLE OF tw_valores.
+
+  INCLUDE z_testfll_sel.
+PARAMETERS pl_num TYPE i.
+PARAMETERS pl_idio TYPE spras.

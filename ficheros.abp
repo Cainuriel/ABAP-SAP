@@ -1,0 +1,53 @@
+REPORT z_testfllficheros.
+
+INCLUDE z_testflficheros_sel.
+
+PARAMETERS: servidor RADIOBUTTON GROUP opc,
+			PC RADIOBUTTON GROUP opc default 'X', 
+
+TCURR-LAUFD,
+TCURR-LAUFI 
+*Cabecera del documento. 
+Proveedor type REGUP-LIFNR, Nombre type LFA1-NAME, Sociedad type REGUP-BUKRS, Nombre_sociedad T001-BUTXT; 
+Documento_de_pago type REGUP- VBLNR, Importe_pago type I,  Moneda type REGUP-WAERS,
+
+ OPEN DATASET fichero FOR INPUT  IN TEXT MODE ENCODING DEFAULT.   
+ IF sy-subrc = 0.     
+ DO.       
+ READ DATASET fichero INTO it_tab.       
+ IF sy-subrc = 0.         
+ APPEND it_tab.
+* En P_FILE va a quedar guardada la ruta del archivo
+PARAMETERS: P_FILE LIKE RLGRAP-FILENAME.
+
+*Llamamos a la función que abre el browser apretando el matchcode
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR P_FILE.
+   CALL FUNCTION ‘F4_FILENAME’
+      EXPORTING
+         PROGRAM_NAME = SY-REPID
+         DYNPRO_NUMBER = SY-DYNNR
+         FIELD_NAME = ‘PATH’
+      IMPORTING
+         FILE_NAME = P_FILE .
+
+ ELSE.         
+ EXIT.       
+ ENDIF.     
+ ENDDO.     
+ CLOSE DATASET fichero.   
+ ENDIF. 
+
+* machcode 
+*En P_FILE va a quedar guardada la ruta del archivo
+PARAMETERS: P_FILE LIKE RLGRAP-FILENAME.
+
+*Llamamos a la función que abre el browser apretando el matchcode
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR P_FILE.
+   CALL FUNCTION ‘F4_FILENAME’
+      EXPORTING
+         PROGRAM_NAME = SY-REPID
+         DYNPRO_NUMBER = SY-DYNNR
+         FIELD_NAME = ‘PATH’
+      IMPORTING
+         FILE_NAME = P_FILE .
+

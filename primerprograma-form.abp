@@ -1,0 +1,104 @@
+REPORT z_testfll.
+
+INCLUDE z_testfll_top.
+
+FORM entradadedatos USING pl_num TYPE i
+						  pt_idio TYPE spras.
+  IF pl_num LE 1 OR pl_num GT 99.
+
+    MESSAGE  'Introduzca un número superior a uno e inferior a 99' TYPE 'I'.
+  ENDIF.
+
+  IF pl_idio is INITIAL.
+     pl_idio = sy-langu.
+    MESSAGE  'Selección de idioma por defecto' TYPE 'I'.
+  ENDIF.
+
+ENDFORM.
+
+FORM inicializar_valor
+  USING    pl_idio    TYPE spras
+  			pl_num TYPE I. 
+  CHANGING pt_valores TYPE tt_valores.
+
+  PERFORM insertar_entrada USING 2
+                                 pl_idio
+                                 pl_num 
+                        CHANGING pt_valores.
+
+  PERFORM insertar_entrada USING 3
+                               pl_idio
+                               pl_num
+                      CHANGING pt_valores.
+
+  PERFORM insertar_entrada USING 5
+                               pl_idio
+                               pl_num 
+                      CHANGING pt_valores.
+
+  PERFORM insertar_entrada USING 7
+                             pl_idio
+                             pl_num 
+                    CHANGING pt_valores.
+
+ENDFORM.        
+
+FORM insertar_entrada  USING    pl_divisor  TYPE i
+                                pl_idio    TYPE spras
+                                pl_num TYPE I. 
+                       CHANGING pt_valores TYPE tt_valores.
+
+
+  DATA: wa_valores TYPE tw_valores.
+
+  wa_valores-numero = pl_numero.
+  PERFORM isdivisible USING pl_num
+				 CHANGING pt_valores
+				 		 wa_valores
+  PERFORM obtener_texto_numero USING pl_idio
+                                     wa_valores-numero
+                            CHANGING wa_valores-cifraenletras.
+
+  APPEND wa_valores TO pt_valores.
+
+ENDFORM. 
+
+
+form isdivisible 
+				 CHANGING pt_valores TYPE tt_valores
+				  		wa_valores TYPE tw_valores
+				 		 pl_num TYPE i. 
+				 DATA modulo TYPE i. 
+				
+				 modulo = pl_num mod wa_valores-numero.
+				 IF modulo EQ 0.
+				 wa_valores-contador = wa_valores-contador + 1.
+				 APPEND wa_valores TO pt_valores.
+				 PERFORM isdivisible CHANGING pl_num
+				 							  wa_valores
+				 							  pt_valores.
+				 ENDIF.
+				 ENDFORM.
+
+FORM obtener_texto_numero  USING    pl_idio TYPE spras
+                                    pl_numero TYPE i
+                           CHANGING pl_cifraenletras TYPE wort.
+
+  SELECT SINGLE wort FROM t015z INTO pl_cifraenletras
+   WHERE spras EQ pl_idio
+   AND ziff EQ pl_numero
+   AND einh EQ '0'.
+
+ENDFORM.
+
+form imprimirdatos USING  pt_valores TYPE tt_valores.
+					DATA	wa_valores TYPE tw_valores.
+
+
+					loop at pt_valores INTO wa_valores.
+					WHEN wa_valores-numero <> 0.
+					WRITE:/  wa_valores-cifraenletras, wa_valores-contador.
+					ENDLOOP.
+
+					ENDFORM.
+

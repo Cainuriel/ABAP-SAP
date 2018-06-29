@@ -1,0 +1,78 @@
+FORM pedir_cotizacion USING pl_ori pl_des
+                      CHANGING invertida pl_imp.
+  DATA: wa_consulta TYPE tcurr,
+        wa_tcurr TYPE tcurr,
+        maximafecha LIKE tcurr-gdatu.
+
+        wa_consulta-fcurr = pl_ori.
+        wa_consulta-tcurr = pl_des.
+        wa_consulta-gdatu = invertida.
+
+
+  DATA: it_monedas LIKE TABLE OF tcurr.
+  SELECT *  FROM tcurr
+    INTO TABLE it_monedas
+    WHERE fcurr EQ wa_consulta-fcurr
+ AND   tcurr EQ wa_consulta-tcurr
+   AND gdatu > wa_consulta-gdatu
+    ORDER BY gdatu.
+
+* Seleccionamos la fecha mas reciente.
+  READ TABLE it_monedas INTO wa_tcurr
+  INDEX 1.
+
+* realizamos el calculo de cambio.
+if wa_tcurr-ukurs < 0.
+  pl_imp =  pl_imp / abs( wa_tcurr-ukurs ).
+  else.
+  pl_imp =  pl_imp * wa_tcurr-ukurs.
+  ENDIF.
+
+  WRITE: wa_tcurr-tcurr,
+        / wa_tcurr-fcurr,
+        'El importe al cambio será: ', pl_imp.
+        WRITE: / 'segun la ultima cotizacion: ', wa_tcurr-ukurs,  'registrada en fecha: ', wa_tcurr-gdatu.
+        SKIP 2.
+
+*listado de fechas.
+*  LOOP AT  it_monedas INTO wa_tcurr.
+*
+*    WRITE: / wa_tcurr-gdatu,
+*  /  wa_tcurr-fcurr,
+*       /  wa_tcurr-tcurr,
+*      /  wa_tcurr-ukurs.
+*
+*  ENDLOOP.
+
+
+ENDFORM.                    " PEDIR_COTIZACION
+
+.
+
+
+FORM invertirfecha USING fecha
+                  CHANGING invertida.
+  DATA fechastring(10) TYPE c.
+*Es necesario añadir las separaciones para que la fecha sea captada. La funcion es antigua.
+  WRITE fecha TO fechastring DD/MM/YYYY.
+* funcion que invierte la fecha standard del sistema.
+  CALL FUNCTION 'CONVERSION_EXIT_INVDT_INPUT'
+    EXPORTING
+      input  = fechastring               "               Entered date (screen)
+    IMPORTING
+      output = invertida.
+ENDFORM.
+
+
+FORM invertirfecha USING fecha
+                  CHANGING invertida.
+  DATA fechastring(10) TYPE c.
+*Es necesario añadir las separaciones para que la fecha sea captada. La funcion es antigua.
+  WRITE fecha TO fechastring DD/MM/YYYY.
+* funcion que invierte la fecha standard del sistema.
+  CALL FUNCTION 'CONVERSION_EXIT_INVDT_INPUT'
+    EXPORTING
+      input  = fechastring               "               Entered date (screen)
+    IMPORTING
+      output = invertida.
+ENDFORM.

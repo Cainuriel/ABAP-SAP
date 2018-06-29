@@ -1,0 +1,21 @@
+* programa que da el comun multiplo de un numero entregado, hasta el numero siete, en varios idiomas. 
+REPORT z_testfll.
+
+
+
+
+
+START-OF-SELECTION.
+PERFORM main.
+
+
+FORM main.
+
+PERFORM entradadedatos USING pt_valores
+							 pt_idio.
+PERFORM inicializar_valor USING    pl_idio.
+  								   pl_num. 
+  						CHANGING pt_valores.
+
+ENDFORM.
+

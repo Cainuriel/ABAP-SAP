@@ -1,0 +1,276 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_TESTFLL_FICHEROS
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  z_testfll_ficheros.
+
+INCLUDE z_testfll_ficheros_top.
+
+*aqui las tablas de las cuales se realizaran los rangos.
+TABLES: REGUP.
+
+*no olvidar crear la tt_ dentro de la estructura. 
+TYPES: BEGIN OF tw_consulta,
+  laufd TYPE laufd,
+  laufi TYPE laufi,
+xvorl TYPE xvorl,
+lifnr TYPE lifnr,
+  bukrs type bukrs,
+  vblnr type vblnr,
+  waers type waers,
+  name1 type name1,
+  belnr type regup-belnr,
+  shkzg type shkzg,
+  wrbtr type wrbtr,
+  butxt TYPE butxt,
+  END OF tw_consulta,
+  tt_consulta type STANDARD TABLE OF tw_consulta.
+
+*tipo de rango que creamos para la seleccion. 
+  TYPES TR_FECHA TYPE RANGE OF REGUP-laufd.
+
+INCLUDE z_testfll_ficheros_sel.
+
+*parametro de rango para los usuarios. 
+SELECT-OPTIONS: so_fecha for REGUP-laufd.
+
+
+  PARAMETERS:pl_id TYPE REGUP-laufi,
+            servidor RADIOBUTTON GROUP opc,
+            PC RADIOBUTTON GROUP opc default 'X'.
+
+Include Z_TESTFLL_FICHEROS_TOP.
+
+
+
+START-OF-SELECTION.
+  PERFORM main.
+
+*&---------------------------------------------------------------------*
+*&      Form  main
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM main.
+  DATA: pt_con like TABLE OF REGUP,
+        it_consulta type tt_consulta.
+
+  PERFORM captacion_variables USING so_fecha[]
+                                    pl_id
+                                    CHANGING it_consulta.
+
+  PERFORM impresion_datos USING it_consulta.
+*
+*  PERFORM crearfichero.
+*  WRITE 'mira a ver si se ha creado el fichero'.
+
+ENDFORM.                    "main
+
+
+
+
+*&---------------------------------------------------------------------*
+*&  Include           Z_TESTFLL_FICHEROS_TOP
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Form  CREARFICHERO
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM crearfichero USING pt_cab TYPE tt_cabecera
+                        pt_pos TYPE tt_posicion.
+
+
+  DATA: wa_pt_cab TYPE tw_cabecera,
+        wa_pt_pos TYPE tw_posicion,
+        fichero TYPE string VALUE 'C:\Users\cainu\TEST.txt',
+        it_tab TYPE TABLE OF tw_cabecera,
+        it_pos TYPE TABLE OF tw_posicion,
+        wa_cab TYPE tw_cabecera,
+        wa_pos TYPE tw_posicion.
+
+
+* No se conseguido imprimir las dos tablas. solo imprimimos la cabecera. 
+  LOOP AT pt_cab INTO wa_pt_cab.
+    MOVE-CORRESPONDING wa_pt_cab TO wa_cab.
+    APPEND wa_cab TO it_tab.
+*    LOOP AT pt_pos INTO wa_pt_pos WHERE lifnr EQ wa_cab-lifnr
+*                               AND bukrs EQ wa_cab-bukrs
+*                               AND vblnr EQ wa_cab-vblnr.
+*      MOVE-CORRESPONDING wa_pt_pos TO wa_pos.
+*      APPEND wa_pos TO it_pos.
+*
+*      PERFORM  posiciones_en_archivo USING it_pos.
+*    ENDLOOP.
+  ENDLOOP.
+
+
+
+
+  CALL FUNCTION 'GUI_DOWNLOAD'
+    EXPORTING
+      filename = fichero
+    TABLES
+      data_tab = it_tab.
+
+
+ENDFORM.                    " CREARFICHERO
+
+*&---------------------------------------------------------------------*
+*&      Form  tabla_posicion
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->PR_FECHA      text
+*      -->PL_ID         text
+*      -->PT_CONSULTA2  text
+*----------------------------------------------------------------------*
+FORM tabla_posicion USING pr_fecha  TYPE tr_fecha
+                                pl_id TYPE regup-laufi
+                          CHANGING pt_posicion TYPE tt_posicion.
+
+*  DATA: wa_consulta TYPE tw_consulta.
+
+
+  SELECT *  FROM regup
+    INTO CORRESPONDING FIELDS OF TABLE pt_posicion
+    WHERE laufd IN pr_fecha
+   AND   laufi EQ pl_id
+   AND xvorl EQ ''
+   AND lifnr NE ''.
+ENDFORM.                    "tabla_posicion
+
+
+*&---------------------------------------------------------------------*
+*&      Form  tabla_cabecera
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM tabla_cabecera  USING pr_fecha  TYPE tr_fecha
+                                pl_id TYPE regup-laufi
+                          CHANGING pt_cabecera TYPE tt_cabecera.
+
+
+  SELECT *  FROM regup
+    INTO CORRESPONDING FIELDS OF TABLE pt_cabecera
+    WHERE laufd IN pr_fecha
+      AND laufi EQ pl_id
+      AND xvorl EQ ''
+      AND lifnr NE ''.
+
+
+  DATA: wa_cabecera TYPE tw_cabecera,
+                         indice TYPE i.
+
+* un select single porque se trata de una clave primaria.
+  LOOP AT pt_cabecera INTO wa_cabecera.
+    indice = sy-tabix.
+    SELECT SINGLE name1 FROM lfa1
+      INTO wa_cabecera-name1
+      WHERE lifnr EQ wa_cabecera-lifnr.
+    MODIFY pt_cabecera FROM wa_cabecera INDEX indice.
+
+  ENDLOOP.
+
+
+  LOOP AT pt_cabecera INTO wa_cabecera.
+    indice = sy-tabix.
+    SELECT SINGLE butxt FROM t001
+      INTO wa_cabecera-butxt
+      WHERE bukrs EQ wa_cabecera-bukrs.
+    MODIFY pt_cabecera FROM wa_cabecera INDEX indice.
+  ENDLOOP.
+
+  SORT pt_cabecera BY lifnr.
+  DELETE ADJACENT DUPLICATES FROM pt_cabecera.
+
+ENDFORM.                    " CAPTACION_DATOS
+*&---------------------------------------------------------------------*
+*&      Form  IMPRESION_DATOS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM impresion_datos USING pt_cabecera TYPE tt_cabecera
+                           pt_posicion TYPE  tt_posicion.
+
+  DATA: secuencap TYPE i,
+        secuenpos TYPE i,
+        wa_posicion TYPE tw_posicion,
+        wa_cabecera TYPE tw_cabecera,
+
+
+        fichero TYPE string VALUE 'C:\Users\cainu\TEST.txt',
+        it_tab TYPE TABLE OF regup WITH HEADER LINE.:
+
+  LOOP AT pt_cabecera INTO wa_cabecera.
+  LOOP AT pt_posicion INTO wa_posicion WHERE lifnr EQ wa_cabecera-lifnr
+                                        AND bukrs EQ wa_cabecera-bukrs
+                                        AND vblnr EQ wa_cabecera-vblnr.
+    IF wa_posicion-shkzg EQ 'S'.
+* cifra positiva, se suma al total.
+      wa_cabecera-total = wa_cabecera-total + wa_posicion-wrbtr.
+      MODIFY pt_cabecera FROM wa_cabecera TRANSPORTING total.
+    ELSE.
+* cifra negativa se resta al total.
+      wa_cabecera-total = wa_cabecera-total - wa_posicion-wrbtr.
+      MODIFY pt_cabecera FROM wa_cabecera TRANSPORTING total.
+    ENDIF.
+
+  ENDLOOP.
+ENDLOOP.
+
+
+
+LOOP AT pt_cabecera INTO wa_cabecera.
+
+  secuencap = secuencap + 1.
+  WRITE: /, '__________________________________________________________________',
+     / 'CAB',secuencap, wa_cabecera-lifnr, wa_cabecera-name1,
+      wa_cabecera-bukrs, wa_cabecera-butxt, wa_cabecera-vblnr, wa_cabecera-waers,
+     'importe total:', wa_cabecera-total,
+  /    '__________________________________________________________________'.
+
+
+
+
+  LOOP AT pt_posicion INTO wa_posicion WHERE lifnr EQ wa_cabecera-lifnr
+                                         AND bukrs EQ wa_cabecera-bukrs
+                                         AND vblnr EQ wa_cabecera-vblnr.
+    secuenpos = secuenpos + 1.
+    WRITE:
+*
+        /  'POS',secuenpos.
+
+    IF wa_posicion-shkzg EQ 'S'.
+      DATA: negativo TYPE i,
+            importe TYPE string.
+      WRITE: 'importe: ',wa_posicion-wrbtr.
+      importe = wa_posicion-wrbtr.
+    ELSE.
+      negativo = wa_posicion-wrbtr - ( wa_posicion-wrbtr * 2 ).
+      WRITE:  'importe',negativo.
+      importe = negativo.
+    ENDIF.
+    WRITE: 'Documento: ',
+    wa_posicion-belnr.
+
+  ENDLOOP.
+  secuenpos = 0.
+
+
+ENDLOOP.
+
+ENDFORM.  
